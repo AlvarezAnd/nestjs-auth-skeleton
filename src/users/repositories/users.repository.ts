@@ -2,41 +2,46 @@ import { Injectable } from '@nestjs/common';
 import { User } from '../entities/user.entity';
 import { CreateUserDto, UpdateUserDto } from '../dtos/users.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-const usersData: User[] = [];
+import { DeleteResult, Repository } from 'typeorm';
 
 export interface IUsersRepository {
   findAll(): Promise<User[]>;
   findOneById(id: number): Promise<User>;
+  findOneByEmail(email: string): Promise<User>;
   create(createUserDto: CreateUserDto): Promise<User>;
   update(updateUserDto: UpdateUserDto): Promise<User>;
-  deleteById(id: number): Promise<User>;
+  deleteById(id: number): Promise<DeleteResult>;
 }
 
 @Injectable()
 export class UsersRepository implements IUsersRepository {
   constructor(
     @InjectRepository(User)
-    private readonly usersRepository: Repository<User>,
+    private readonly repository: Repository<User>,
   ) {}
 
+  async findAll(): Promise<User[]> {
+    return await this.repository.find();
+  }
+
+  async findOneById(id: number): Promise<User> {
+    return await this.repository.findOneBy({ id });
+  }
+
+  async findOneByEmail(email: string): Promise<User> {
+    return await this.repository.findOneBy({ email });
+  }
+
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const newUser = this.usersRepository.create(createUserDto);
-    return await this.usersRepository.save(newUser);
+    const newUser = this.repository.create(createUserDto);
+    return await this.repository.save(newUser);
   }
 
-  update(updateUserDto: UpdateUserDto): Promise<User> {
-    throw new Error('Method not implemented.');
+  async update(updateUserDto: UpdateUserDto): Promise<User> {
+    await this.repository.update(updateUserDto.id, updateUserDto);
+    return await this.repository.save(updateUserDto);
   }
-  deleteById(id: number): Promise<User> {
-    throw new Error('Method not implemented.');
-  }
-  findAll(): Promise<User[]> {
-    return Promise.resolve(usersData);
-  }
-
-  findOneById(id: number): Promise<User> {
-    return Promise.resolve(usersData.find((user) => user.id === id));
+  async deleteById(id: number): Promise<DeleteResult> {
+    return await this.repository.delete(id);
   }
 }
